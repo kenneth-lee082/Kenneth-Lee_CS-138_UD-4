@@ -1,0 +1,141 @@
+# main.py
+# Developer: Kenneth Lee
+# Date: 2025-05-19
+# Description: GUI for registering and viewing movies using tkinter.
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+from feature_film import FeatureFilm
+from drama_series import DramaSeries
+from animation import Animation
+from documentary import Documentary
+
+window = tk.Tk()
+window.title("Movie Registration")
+window.geometry("500x600")
+
+movie_list = []
+extra_entries = {}
+is_real_var = tk.BooleanVar()
+
+def update_fields(*args):
+    for widget in extra_frame.winfo_children():
+        widget.destroy()
+    extra_entries.clear()
+    global is_real_var
+    is_real_var = tk.BooleanVar()
+
+    selected = movie_type_var.get()
+    if selected == "Feature Film":
+        add_entry("Duration (min):", "duration")
+        add_entry("Rating:", "rating")
+    elif selected == "Drama Series":
+        add_entry("Season:", "season")
+        add_entry("Episodes:", "episodes")
+    elif selected == "Animation":
+        add_entry("Target Age:", "target_age")
+    elif selected == "Documentary":
+        tk.Checkbutton(extra_frame, text="Based on a true story?", variable=is_real_var).pack()
+
+def add_entry(label_text, key):
+    label = tk.Label(extra_frame, text=label_text)
+    label.pack()
+    entry = tk.Entry(extra_frame)
+    entry.pack()
+    extra_entries[key] = entry
+
+def clear_fields():
+    title_entry.delete(0, tk.END)
+    director_entry.delete(0, tk.END)
+    year_entry.delete(0, tk.END)
+    for entry in extra_entries.values():
+        entry.delete(0, tk.END)
+    is_real_var.set(False)
+
+def register_movie():
+    title = title_entry.get()
+    director = director_entry.get()
+    year = year_entry.get()
+    mtype = movie_type_var.get()
+
+    if not title or not director or not year:
+        result_label.config(text="Please enter title, director, and year.")
+        return
+
+    try:
+        year = int(year)
+    except:
+        result_label.config(text="Year must be a number.")
+        return
+
+    try:
+        if mtype == "Feature Film":
+            duration = int(extra_entries["duration"].get())
+            rating = extra_entries["rating"].get()
+            movie = FeatureFilm(title, director, year, duration, rating)
+        elif mtype == "Drama Series":
+            season = int(extra_entries["season"].get())
+            episodes = int(extra_entries["episodes"].get())
+            movie = DramaSeries(title, director, year, season, episodes)
+        elif mtype == "Animation":
+            age = extra_entries["target_age"].get()
+            movie = Animation(title, director, year, age)
+        elif mtype == "Documentary":
+            movie = Documentary(title, director, year, is_real_var.get())
+        else:
+            result_label.config(text="Select a movie type.")
+            return
+
+        movie_list.append(movie)
+        result_label.config(text=f"Movie Registered:\n{movie}")
+        print(f"Movie Registered: {movie}")
+        clear_fields()
+
+    except Exception as e:
+        result_label.config(text=f"Error: {e}")
+
+def show_movies():
+    if not movie_list:
+        messagebox.showinfo("Movies", "No movies registered yet.")
+        return
+    movie_window = tk.Toplevel(window)
+    movie_window.title("Registered Movies")
+    movie_window.geometry("400x300")
+
+    text = tk.Text(movie_window, wrap=tk.WORD)
+    text.pack(fill=tk.BOTH, expand=True)
+
+    for movie in movie_list:
+        text.insert(tk.END, str(movie) + "\n\n")
+
+# GUI Widgets
+tk.Label(window, text="Title:").pack()
+title_entry = tk.Entry(window)
+title_entry.pack()
+
+tk.Label(window, text="Director:").pack()
+director_entry = tk.Entry(window)
+director_entry.pack()
+
+tk.Label(window, text="Year:").pack()
+year_entry = tk.Entry(window)
+year_entry.pack()
+
+tk.Label(window, text="Movie Type:").pack()
+movie_type_var = tk.StringVar()
+movie_type_combobox = ttk.Combobox(window, textvariable=movie_type_var, state="readonly")
+movie_type_combobox['values'] = ("Feature Film", "Drama Series", "Animation", "Documentary")
+movie_type_combobox.pack()
+movie_type_combobox.bind("<<ComboboxSelected>>", update_fields)
+
+extra_frame = tk.Frame(window)
+extra_frame.pack(pady=10)
+
+tk.Button(window, text="Register Movie", command=register_movie).pack(pady=5)
+tk.Button(window, text="Show Registered Movies", command=show_movies).pack(pady=5)
+
+result_label = tk.Label(window, text="", wraplength=400, justify="left")
+result_label.pack()
+
+window.mainloop()
